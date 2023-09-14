@@ -15,7 +15,13 @@ contract NftContract is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
     uint256 private i_tokenCounter;
 
     // Mapping from requestId to traits
-    mapping(bytes32 => Traits) public requestIdToTraits;
+    mapping(bytes32 => Traits) private requestIdToTraits;
+
+    // Mapping from token ID to whether it has been minted
+    mapping(uint256 => bool) private tokenIdMinted;
+
+    // Mapping from requestId to sender
+    mapping(bytes32 => address) private requestIdToSender;
 
     // Struct to represent NFT traits
     struct Traits {
@@ -56,7 +62,7 @@ contract NftContract is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
         requestId = requestRandomness(i_keyHash, i_fee);
 
-        s_requestIdToSender[requestId] = msg.sender;
+        requestIdToSender[requestId] = msg.sender;
     }
 
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
@@ -68,12 +74,12 @@ contract NftContract is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
         i_tokenCounter = tokenId + 1;
 
         // Mint the NFT to the address that made the request
-        _mint(s_requestIdToSender[requestId], tokenId);
+        _mint(requestIdToSender[requestId], tokenId);
         _setTokenURI(tokenId, getTokenURI(traits));
 
         tokenIdMinted[tokenId] = true;
 
-        emit NftMinted(tokenId, s_requestIdToSender[requestId], traits);
+        emit NftMinted(tokenId, requestIdToSender[requestId], traits);
     }
 
     function generateTraits(uint256 randomness) internal pure returns (Traits memory) {
